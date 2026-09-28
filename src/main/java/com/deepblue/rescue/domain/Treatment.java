@@ -50,4 +50,18 @@ public class Treatment {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public Treatment(
+        Animal animal,
+        Specialist specialist,
+        java.time.LocalDateTime performedAt,
+        TreatmentType type,
+        String description) {
+    this.animal = animal;
+    this.specialist = specialist;
+    this.performedAt = performedAt;
+    this.type = type;
+    this.description = description;}
+
+    public Treatment() {}
 }
