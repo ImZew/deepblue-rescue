@@ -71,4 +71,8 @@ public class Specialist {
 
     public List<Treatment> getTreatments() { return treatments; }
     public void setTreatments(List<Treatment> treatments) { this.treatments = treatments; }
+
+    public boolean isActive() {
+    return Boolean.TRUE.equals(this.active);
+}
 }
