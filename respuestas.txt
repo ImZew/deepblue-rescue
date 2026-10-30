@@ -1,0 +1,36 @@
+RESPUESTAS "PARA PENSAR" — LABORATORIO DEEPBLUE RESCUE (REACT + TANSTACK QUERY)
+
+Checkpoint 1: ¿Por qué la URL del fetch será /api/... y no http://localhost:8080/api/...?
+Respuesta: Porque el navegador bloquea por defecto las peticiones a otro origen por políticas CORS. Al usar /api/..., la petición va al servidor de desarrollo de Vite (localhost:5173) y el proxy configurado en vite.config.js la redirige internamente hacia http://localhost:8080 evitando el bloqueo CORS.
+
+Checkpoint 2: ¿Por qué request lanza el error en lugar de devolverlo?
+Respuesta: Porque TanStack Query determina si una consulta o mutación falló (activando isError: true) únicamente cuando la promesa se rechaza (throw). Si se devolviera el objeto de error con return, TanStack Query asumiría que la petición fue exitosa (isSuccess: true).
+
+Checkpoint 3: ¿Qué pasaría si queryKey fuera solo ['rescue-cases'] sin status?
+Respuesta: Todos los estados compartirían la misma entrada en caché. Al cambiar el filtro en el <select>, la clave no cambiaría, por lo que TanStack Query no haría una nueva petición y mostraría los datos en caché del estado anterior.
+
+Checkpoint 4: ¿Para qué sirve enabled? ¿Qué pasaría sin él si animalCode fuera undefined?
+Respuesta: enabled evita que la consulta se ejecute hasta que animalCode tenga un valor válido. Sin enabled, se dispararía una petición hacia /api/animals/undefined devolviendo un error 404 innecesario.
+
+Checkpoint 5: ¿Qué hace invalidateQueries({ queryKey: ['rescue-cases'] }) y por qué afecta a todas las listas por estado?
+Respuesta: Marca como desactualizadas todas las consultas en caché que comiencen con el prefijo ['rescue-cases'] (incluyendo ['rescue-cases', 'ADMITTED'], ['rescue-cases', 'UNDER_EVALUATION'], etc.) y recarga las activas. Así el caso cambiado desaparece de la lista vieja y aparece en la nueva automáticamente.
+
+Checkpoint 6: ¿Por qué usamos useReducer y no un useState por campo? ¿Por qué invalidateQueries usa la clave ['animal', animalCode] sin más sufijos?
+Respuesta:
+1. useReducer permite manejar todos los campos del formulario con una sola transición ('field') y reiniciar todo el formulario de golpe con una acción ('reset').
+2. Usar el prefijo ['animal', animalCode] invalida jerárquicamente las tres consultas asociadas al animal (datos del animal, 'treatments' y 'eligibility') en una sola llamada.
+
+------------------------------------------------------------------------
+OBSERVACIONES DE LAS TABLAS DE PRUEBAS
+
+Paso 5 — Pruebas de cambio de estado:
+- ADMITTED -> UNDER_EVALUATION: Respuesta 200 OK. Se invalida la caché ['rescue-cases'], el caso sale de la lista ADMITTED y aparece al filtrar por UNDER_EVALUATION sin recargar la página.
+- ADMITTED -> RELEASED (salto inválido): Respuesta 409 Conflict. Se muestra el mensaje de la regla de negocio en rojo mediante ErrorMessage y la aplicación sigue funcionando.
+
+Paso 6 — Pruebas de registro de tratamiento:
+- Descripción < 10 caracteres: Respuesta 400 Bad Request, muestra details.description en la alerta.
+- specialistCode vacío: Respuesta 400 Bad Request, muestra details.specialistCode en la alerta.
+- Fecha en el futuro: Respuesta 400 Bad Request ("Treatment date cannot be in the future").
+- Fecha vacía: Respuesta 400 Bad Request indicando que la fecha es obligatoria.
+- specialistCode = SP-999: Respuesta 404 Not Found indicando que el especialista no existe.
+- Datos válidos (descripción >= 10 caracteres): Respuesta 201 Created, aparece "Tratamiento registrado ✔", el formulario se limpia con reset y la tabla de tratamientos junto con la elegibilidad se actualizan solas.
